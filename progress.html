@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>ASCII Cat - Launcher</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #000; color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .wrapper {
+    width: 580px; border: 2px solid #333; padding: 25px; background: #050505; text-align: center;
+    box-shadow: 0 0 20px rgba(255, 153, 102, 0.1);
+  }
+  h1 { font-size: 16px; margin-bottom: 20px; color: #ff9966; letter-spacing: 2px; }
+  
+  /* Selector de Idiomas */
+  .lang-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+  .lang-btn {
+    background: #111; border: 1px solid #444; color: #888; padding: 6px 10px; 
+    font-family: 'Press Start 2P'; font-size: 8px; cursor: pointer; border-radius: 2px;
+  }
+  .lang-btn.active { border-color: #ffaa44; color: #ffaa44; background: #ffaa4411; }
+
+  /* Info de Partida */
+  .stats-box { border: 1px dashed #222; padding: 18px; margin-bottom: 20px; text-align: left; font-size: 9px; line-height: 1.6; }
+  .stat-line { margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .stat-name { color: #888; }
+  
+  /* Botones principales */
+  .btn {
+    display: block; width: 100%; background: #111; border: 1px solid #444; color: #fff;
+    padding: 12px; font-family: 'Press Start 2P'; font-size: 8px; cursor: pointer;
+    margin-bottom: 10px; text-decoration: none; text-align: center; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: #222; border-color: #aaa; }
+  .btn.play { background: #ff996622; border-color: #ff9966; color: #ff9966; font-size: 11px; margin-top: 15px; padding: 16px; }
+  .btn.play:hover { background: #ff996644; color: #fff; }
+
+  .file-input { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+  .file-input input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; font-size: 100px; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="lang-bar">
+    <button class="lang-btn" id="btn-es" onclick="changeLang('es')">ESP</button>
+    <button class="lang-btn" id="btn-en" onclick="changeLang('en')">ENG</button>
+  </div>
+
+  <h1 id="title">ASCII CAT</h1>
+
+  <div class="stats-box" id="stats-content">
+    </div>
+
+  <div class="file-input">
+    <button class="btn" id="lbl-import">▲ Cargar archivo (.cat)</button>
+    <input type="file" accept=".cat" onchange="importSave(event)">
+  </div>
+  <button class="btn" id="lbl-export" onclick="exportSave()">▼ Descargar progreso (.cat)</button>
+
+  <a href="index.html" class="btn play" id="lbl-start">¡JUGAR / PLAY!</a>
+</div>
+
+<script>
+const SAVE_KEY = 'ascii_cat_save';
+let currentLang = localStorage.getItem('ascii_cat_lang') || 'es';
+
+const dict = {
+  es: {
+    title: "ASCII CAT - PROGRESO",
+    noData: "No hay datos de guardado locales. Se iniciará una nueva aventura al jugar.",
+    catName: "Nombre del Gato",
+    status: "Estado",
+    sleeping: "Durmiendo zzz...",
+    awake: "Despierto / Activo",
+    lblImport: "▲ Importar partida externa (.cat)",
+    lblExport: "▼ Descargar copia de seguridad (.cat)",
+    lblStart: "¡INICIAR SIMULACIÓN! 🎮",
+    loadedSuccess: "¡Progreso de Gato importado correctamente!"
+  },
+  en: {
+    title: "ASCII CAT - LAUNCHER",
+    noData: "No local save data found. A new adventure will begin when you play.",
+    catName: "Cat Name",
+    status: "Status",
+    sleeping: "Sleeping zzz...",
+    awake: "Awake / Active",
+    lblImport: "▲ Import external save file (.cat)",
+    lblExport: "▼ Download local backup (.cat)",
+    lblStart: "START SIMULATION! 🎮",
+    loadedSuccess: "Cat progress imported successfully!"
+  }
+};
+
+function changeLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('ascii_cat_lang', lang);
+  render();
+}
+
+function render() {
+  document.getElementById('btn-es').classList.toggle('active', currentLang === 'es');
+  document.getElementById('btn-en').classList.toggle('active', currentLang === 'en');
+  
+  const t = dict[currentLang];
+  document.getElementById('title').textContent = t.title;
+  document.getElementById('lbl-import').textContent = t.lblImport;
+  document.getElementById('lbl-export').textContent = t.lblExport;
+  document.getElementById('lbl-start').textContent = t.lblStart;
+
+  const localData = localStorage.getItem(SAVE_KEY);
+  const statsBox = document.getElementById('stats-content');
+
+  if(!localData) {
+    statsBox.innerHTML = `<div style="text-align:center; color:#555; padding: 10px 0;">${t.noData}</div>`;
+    return;
+  }
+
+  try {
+    const data = JSON.parse(localData);
+    statsBox.innerHTML = `
+      <div class="stat-line"><span class="stat-name">${t.catName}:</span> <span style="color:#ffaa44;">${data.catName.toUpperCase()}</span></div>
+      <div class="stat-line"><span class="stat-name">${t.status}:</span> <span>${data.stats.sleeping ? t.sleeping : t.awake}</span></div>
+      <div class="stat-line" style="margin-top:14px; border-top: 1px dashed #222; padding-top: 8px;"><span class="stat-name">Food / Hambre:</span> <span>${Math.round(data.stats.food)}/100</span></div>
+      <div class="stat-line"><span class="stat-name">Fun / Diversión:</span> <span>${Math.round(data.stats.fun)}/100</span></div>
+      <div class="stat-line"><span class="stat-name">Love / Afecto:</span> <span>${Math.round(data.stats.love)}/100</span></div>
+      <div class="stat-line"><span class="stat-name">Sleep / Energía:</span> <span>${Math.round(data.stats.sleep)}/100</span></div>
+    `;
+  } catch(e) {
+    statsBox.innerHTML = `<div style="color:#ff6666; text-align:center;">Error parsing save file.</div>`;
+  }
+}
+
+function exportSave() {
+  const data = localStorage.getItem(SAVE_KEY);
+  if(!data) return;
+  try {
+    const parsed = JSON.parse(data);
+    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${parsed.catName.toLowerCase().replace(/\s+/g, '_')}.cat`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert("Error exporting file"); }
+}
+
+function importSave(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const json = JSON.parse(e.target.result);
+      if (json.catName || json.stats) {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(json));
+        alert(dict[currentLang].loadedSuccess);
+        render();
+      }
+    } catch(err) { alert(currentLang === 'es' ? "Datos del archivo .cat no válidos" : "Invalid .cat file structure"); }
+  };
+  reader.readAsText(file);
+}
+
+render();
+</script>
+</body>
+</html>
